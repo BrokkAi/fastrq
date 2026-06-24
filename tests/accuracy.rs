@@ -321,6 +321,14 @@ fn byte_roundtrip() {
     let code = q.encode(&random_unit_vector(d, &mut rng));
     let bytes = code.to_bytes();
     assert_eq!(bytes.len(), fastrq::RQ_METADATA_SIZE + q.output_dim());
+
+    // The flat layout is little-endian metadata then code bytes; pin it so the
+    // on-disk format can't silently change.
+    assert_eq!(&bytes[0..4], &code.lower().to_le_bytes());
+    assert_eq!(&bytes[4..8], &code.step().to_le_bytes());
+    assert_eq!(&bytes[12..16], &code.norm2().to_le_bytes());
+    assert_eq!(&bytes[fastrq::RQ_METADATA_SIZE..], code.codes());
+
     let restored = RqCode::from_bytes(&bytes).unwrap();
     assert_eq!(code, restored);
 }

@@ -37,7 +37,7 @@ impl Metric {
 /// Bit-width of the per-dimension codes.
 ///
 /// Only [`Bits::Eight`] is fully implemented and tested. [`Bits::Four`] is
-/// reserved for the future; smaller bit-rates are explicitly a non-goal. The
+/// reserved for the future; smaller bit-rates than 4 are explicitly a non-goal. The
 /// enum exists so the public API is stable if 4-bit lands later.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -121,14 +121,16 @@ impl RqCode {
         self.norm2
     }
 
-    /// Serialize to a flat `[u8]` (big-endian metadata then codes), matching
-    /// Weaviate's wire layout. Useful when storing alongside non-serde formats.
+    /// Serialize to a flat `[u8]`: four little-endian f32 metadata fields then
+    /// the code bytes. Little-endian is a zero-swap `memcpy` on x86-64 / aarch64
+    /// and matches bincode's default byte order. Useful when storing alongside
+    /// non-serde formats.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::with_capacity(RQ_METADATA_SIZE + self.codes.len());
-        out.extend_from_slice(&self.lower.to_be_bytes());
-        out.extend_from_slice(&self.step.to_be_bytes());
-        out.extend_from_slice(&self.code_sum.to_be_bytes());
-        out.extend_from_slice(&self.norm2.to_be_bytes());
+        out.extend_from_slice(&self.lower.to_le_bytes());
+        out.extend_from_slice(&self.step.to_le_bytes());
+        out.extend_from_slice(&self.code_sum.to_le_bytes());
+        out.extend_from_slice(&self.norm2.to_le_bytes());
         out.extend_from_slice(&self.codes);
         out
     }
@@ -141,7 +143,7 @@ impl RqCode {
                 actual: b.len(),
             });
         }
-        let f = |o: usize| f32::from_be_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]]);
+        let f = |o: usize| f32::from_le_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]]);
         Ok(Self {
             lower: f(0),
             step: f(4),
@@ -341,7 +343,7 @@ impl QueryDistancer<'_> {
     }
 }
 
-/// Plain inner product of two equal-length f32 slices. Matches `rvector::dot`.
+/// Plain inner product of two equal-length f32 slices.
 #[inline]
 fn dot(x: &[f32], y: &[f32]) -> f32 {
     x.iter().zip(y).map(|(a, b)| a * b).sum()

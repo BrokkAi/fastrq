@@ -69,7 +69,7 @@ chasing the smallest possible bit-rate:
 
 The trade-off is explicit: 8-bit RQ is ~2× larger than a 4-bit scheme, and we
 take that to keep the scan branch-free, LUT-free, and accurate enough to skip
-reranking. Smaller bit-rates are a non-goal (see [Bit widths](#bit-widths)).
+reranking. Smaller bit-rates than 4 are a non-goal (see [Bit widths](#bit-widths)).
 
 ## Usage
 
@@ -101,24 +101,24 @@ product, smaller = more similar), and `Metric::L2` (squared Euclidean).
 
 ## Persistence / compatibility
 
-- The API mirrors [`rvector`](../rvector)'s quantizer conventions (a `Bits` enum
-  like `NvqBits`, `&[f32]` in / `Vec<u8>` codes out) so it drops into the same
-  call sites.
+- Plain, predictable types: `&[f32]` in, `Vec<u8>` codes out, a `Bits` enum, and
+  a free-standing `dot` — so it slots into an existing vector index without
+  adapters.
 - Enable the `serde` feature to derive `Serialize`/`Deserialize` on
-  `RotationalQuantizer`, `FastRotation`, and `RqCode` — this is how
-  [`bifrost`](../bifrost)'s NLP store can persist codes with `bincode`.
-- `RqCode::to_bytes` / `from_bytes` give a flat big-endian layout matching
-  Weaviate's wire format for the code body.
-- It is **not** byte-compatible with Weaviate's Go encoder (different RNG). If
-  you need to reproduce a rotation across processes, persist the
-  `FastRotation` (it stores the realized swaps and signs, so it is
-  RNG-independent).
+  `RotationalQuantizer`, `FastRotation`, and `RqCode`, so codes (and the
+  quantizer itself) persist with `bincode` or any other serde format.
+- `RqCode::to_bytes` / `from_bytes` give a flat little-endian layout (4 × f32
+  metadata then the code bytes) for storing alongside non-serde formats. It is a
+  zero-swap `memcpy` on x86-64 / aarch64 and agrees with bincode's byte order.
+- The rotation is RNG-seeded, but persistence does not depend on the RNG:
+  `FastRotation` stores the realized swaps and signs, so a deserialized quantizer
+  reproduces byte-identical codes across processes and crate versions.
 
 ## Bit widths
 
 `Bits::Eight` is the supported, tested configuration. `Bits::Four` is reserved:
 it currently encodes correctly but stores one byte per dimension (no packing),
-so it saves no space yet. Smaller bit-rates are an explicit non-goal.
+so it saves no space yet. Smaller bit-rates than 4 are an explicit non-goal.
 
 ## Tests
 

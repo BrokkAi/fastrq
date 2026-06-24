@@ -42,18 +42,20 @@
 //!
 //! ## Compatibility
 //!
-//! The API intentionally echoes `rvector`'s quantizer conventions (a `Bits`
-//! enum à la `NvqBits`, `&[f32]` in / `Vec<u8>` codes out, a plain `dot`) and is
-//! serde-friendly (enable the `serde` feature) so `bifrost`'s NLP store can
-//! persist codes with `bincode`. It is **not** wire-compatible with Weaviate's
-//! Go encoder (different RNG); persist [`FastRotation`] if you need to reproduce
-//! a rotation across processes.
+//! The API uses plain types — a [`Bits`] enum, `&[f32]` in / `Vec<u8>` codes
+//! out, a free-standing dot product — so it drops into an existing vector index
+//! without adapters. Enable the `serde` feature to persist the quantizer,
+//! [`FastRotation`], and [`RqCode`] with `bincode` or any serde format. The
+//! rotation is RNG-seeded but persistence does not depend on the RNG:
+//! [`FastRotation`] stores the realized swaps and signs, so a deserialized
+//! quantizer reproduces byte-identical codes across processes and versions.
 //!
 //! ## Bit widths
 //!
 //! [`Bits::Eight`] is the supported, tested configuration. [`Bits::Four`] is
 //! reserved: it currently encodes correctly but stores one byte per dimension
-//! (no packing), so it saves no space yet. Smaller bit-rates are a non-goal.
+//! (no packing), so it saves no space yet. Smaller bit-rates than 4 are a
+//! non-goal.
 
 #![forbid(unsafe_code)]
 
