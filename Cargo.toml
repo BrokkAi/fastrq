@@ -1,0 +1,28 @@
+[package]
+name = "rq8"
+version = "0.1.0"
+edition = "2024"
+description = "8-bit rotational quantization (RaBitQ-style) for vector compression, following Weaviate's implementation."
+license = "Apache-2.0"
+repository = "https://github.com/jbellis/rq8"
+keywords = ["quantization", "vector-search", "rabitq", "compression", "ann"]
+categories = ["algorithms", "science"]
+readme = "README.md"
+
+[features]
+default = []
+# Derive serde Serialize/Deserialize on the persistable types (FastRotation,
+# RqCode, RotationalQuantizer) so consumers like bifrost can persist them with
+# bincode.
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[dev-dependencies]
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
+
+[profile.release]
+debug = true
