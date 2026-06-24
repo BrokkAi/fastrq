@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-24
+
+### Added
+- `RqCodeRef<'a>`: a zero-copy view over a code's flat byte layout (metadata
+  parsed, code bytes borrowed), plus `RqCode::as_view`.
+- `QueryDistancer::distance_bytes(&[u8])`: score a candidate straight from its
+  `to_bytes` layout with no per-candidate allocation — the allocation-free scan
+  path for mmap'd / packed code columns. The owned `distance` and the byte path
+  share one internal implementation (no public ref/owned API split).
+
 ## [0.1.0] - 2026-06-24
 
 Initial release.
@@ -28,5 +38,6 @@ Initial release.
   rotation round-trip and norm preservation, code-point distribution, and
   serde/bincode round-tripping.
 
-[Unreleased]: https://github.com/BrokkAi/fastrq/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/BrokkAi/fastrq/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/BrokkAi/fastrq/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/BrokkAi/fastrq/releases/tag/v0.1.0

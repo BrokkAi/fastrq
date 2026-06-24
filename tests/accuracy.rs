@@ -366,6 +366,32 @@ fn handles_dimensions_above_u16() {
 }
 
 #[test]
+fn distance_bytes_matches_owned() {
+    let mut rng = StdRng::seed_from_u64(4242);
+    let d = 256;
+    let q = RotationalQuantizer::with_seed(d, Bits::Eight, Metric::Cosine, 7);
+    let query = random_unit_vector(d, &mut rng);
+    let dist = q.query_distancer(&query);
+
+    for _ in 0..50 {
+        let code = q.encode(&random_unit_vector(d, &mut rng));
+        let owned = dist.distance(&code).unwrap();
+        // The alloc-free path over the flat bytes must give an identical result.
+        let from_bytes = dist.distance_bytes(&code.to_bytes()).unwrap();
+        assert_eq!(owned, from_bytes);
+    }
+
+    // Too-short input is rejected, not read out of bounds.
+    assert!(dist.distance_bytes(&[0u8; 4]).is_err());
+    // Wrong code dimension is rejected.
+    let wrong = RqCode::zero(128).to_bytes();
+    assert!(matches!(
+        dist.distance_bytes(&wrong),
+        Err(fastrq::Error::DimensionMismatch { .. })
+    ));
+}
+
+#[test]
 fn byte_roundtrip() {
     let mut rng = StdRng::seed_from_u64(321);
     let d = 384;

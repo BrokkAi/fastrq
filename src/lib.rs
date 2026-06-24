@@ -64,5 +64,7 @@ mod quantizer;
 mod rotation;
 
 pub use error::{Error, Result};
-pub use quantizer::{Bits, Metric, QueryDistancer, RQ_METADATA_SIZE, RotationalQuantizer, RqCode};
+pub use quantizer::{
+    Bits, Metric, QueryDistancer, RQ_METADATA_SIZE, RotationalQuantizer, RqCode, RqCodeRef,
+};
 pub use rotation::{DEFAULT_FAST_ROTATION_SEED, FastRotation, Swap};

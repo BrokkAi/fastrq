@@ -1,6 +1,6 @@
 [package]
 name = "fastrq"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "8-bit rotational quantization (RaBitQ-style) for vector compression, following Weaviate's implementation."
 license = "Apache-2.0"

@@ -152,6 +152,81 @@ impl RqCode {
             codes: b[RQ_METADATA_SIZE..].to_vec(),
         })
     }
+
+    /// Borrow this code as a zero-copy [`RqCodeRef`].
+    pub fn as_view(&self) -> RqCodeRef<'_> {
+        RqCodeRef {
+            lower: self.lower,
+            step: self.step,
+            code_sum: self.code_sum,
+            norm2: self.norm2,
+            codes: &self.codes,
+        }
+    }
+}
+
+/// A borrowed, zero-copy view over a code in its flat [`to_bytes`](RqCode::to_bytes)
+/// layout: the four f32 metadata fields are parsed (cheap, no allocation) while
+/// the code bytes are borrowed in place.
+///
+/// This is what makes the scan allocation-free: a candidate stored as raw bytes
+/// (e.g. a slice of an mmap'd column) can be scored via
+/// [`QueryDistancer::distance_bytes`] without building an owned [`RqCode`] per
+/// candidate in the hot loop.
+#[derive(Clone, Copy, Debug)]
+pub struct RqCodeRef<'a> {
+    lower: f32,
+    step: f32,
+    code_sum: f32,
+    norm2: f32,
+    codes: &'a [u8],
+}
+
+impl<'a> RqCodeRef<'a> {
+    /// Parse a view from the flat little-endian byte layout without copying the
+    /// code bytes. Returns [`Error::DimensionMismatch`] if `b` is too short to
+    /// hold the metadata.
+    pub fn from_bytes(b: &'a [u8]) -> Result<Self> {
+        if b.len() < RQ_METADATA_SIZE {
+            return Err(Error::DimensionMismatch {
+                expected: RQ_METADATA_SIZE,
+                actual: b.len(),
+            });
+        }
+        let f = |o: usize| f32::from_le_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]]);
+        Ok(Self {
+            lower: f(0),
+            step: f(4),
+            code_sum: f(8),
+            norm2: f(12),
+            codes: &b[RQ_METADATA_SIZE..],
+        })
+    }
+
+    /// Rotated dimension of this code.
+    pub fn dimension(&self) -> usize {
+        self.codes.len()
+    }
+
+    /// Per-dimension code bytes.
+    pub fn codes(&self) -> &'a [u8] {
+        self.codes
+    }
+
+    /// Quantization offset (the minimum rotated value).
+    pub fn lower(&self) -> f32 {
+        self.lower
+    }
+
+    /// Quantization step size.
+    pub fn step(&self) -> f32 {
+        self.step
+    }
+
+    /// `⟨x, x⟩` of the original (pre-rotation) vector.
+    pub fn norm2(&self) -> f32 {
+        self.norm2
+    }
 }
 
 /// The quantizer. Holds the rotation and the metric/bit configuration; encoding
@@ -296,12 +371,7 @@ impl RotationalQuantizer {
     /// [`distance`](Self::distance) when the inputs are untrusted.
     #[inline]
     pub fn dot_estimate(&self, x: &RqCode, y: &RqCode) -> f32 {
-        let d = self.output_dim() as f32;
-        let a = d * x.lower * y.lower;
-        let b = x.lower * y.code_sum;
-        let c = y.lower * x.code_sum;
-        let dd = x.step * y.step * dot_bytes(&x.codes, &y.codes) as f32;
-        a + b + c + dd
+        self.dot_estimate_view(x.as_view(), y.as_view())
     }
 
     /// Estimate the configured distance between two codes.
@@ -310,17 +380,35 @@ impl RotationalQuantizer {
     /// this quantizer's [`output_dim`](Self::output_dim) — which also catches
     /// two equally-but-wrongly-sized codes from a different quantizer.
     pub fn distance(&self, x: &RqCode, y: &RqCode) -> Result<f32> {
+        self.distance_view(x.as_view(), y.as_view())
+    }
+
+    /// Shared dot-product estimate over borrowed views. The owned and byte-slice
+    /// entry points both funnel through here, so there is a single distance
+    /// implementation (no public ref/owned API split).
+    #[inline]
+    fn dot_estimate_view(&self, x: RqCodeRef<'_>, y: RqCodeRef<'_>) -> f32 {
+        let d = self.output_dim() as f32;
+        let a = d * x.lower * y.lower;
+        let b = x.lower * y.code_sum;
+        let c = y.lower * x.code_sum;
+        let dd = x.step * y.step * dot_bytes(x.codes, y.codes) as f32;
+        a + b + c + dd
+    }
+
+    #[inline]
+    fn distance_view(&self, x: RqCodeRef<'_>, y: RqCodeRef<'_>) -> Result<f32> {
         let expected = self.output_dim();
-        for code in [x, y] {
-            if code.codes.len() != expected {
+        for len in [x.codes.len(), y.codes.len()] {
+            if len != expected {
                 return Err(Error::DimensionMismatch {
                     expected,
-                    actual: code.codes.len(),
+                    actual: len,
                 });
             }
         }
         let (cos, l2) = self.metric.indicators();
-        let dot = self.dot_estimate(x, y);
+        let dot = self.dot_estimate_view(x, y);
         Ok(l2 * (x.norm2 + y.norm2) + cos - (1.0 + l2) * dot)
     }
 
@@ -349,7 +437,21 @@ impl QueryDistancer<'_> {
 
     /// Distance from the query to a candidate code.
     pub fn distance(&self, candidate: &RqCode) -> Result<f32> {
-        self.quantizer.distance(&self.query_code, candidate)
+        self.quantizer
+            .distance_view(self.query_code.as_view(), candidate.as_view())
+    }
+
+    /// Distance from the query to a candidate stored in its flat
+    /// [`to_bytes`](RqCode::to_bytes) layout, scored without allocating an owned
+    /// [`RqCode`]. This is the allocation-free scan path: point it straight at a
+    /// slice of an mmap'd / packed code column.
+    ///
+    /// Returns [`Error::DimensionMismatch`] if the candidate is too short for the
+    /// metadata or its code length differs from the quantizer's `output_dim`.
+    pub fn distance_bytes(&self, candidate: &[u8]) -> Result<f32> {
+        let candidate = RqCodeRef::from_bytes(candidate)?;
+        self.quantizer
+            .distance_view(self.query_code.as_view(), candidate)
     }
 }
 
