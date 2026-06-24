@@ -1,4 +1,4 @@
-# rq8
+# fastrq
 
 8-bit **rotational quantization (RQ)** for compressing high-dimensional float
 vectors to ~1 byte per dimension while preserving cosine / dot / L2 distance
@@ -44,9 +44,9 @@ original distances — no need to ever un-rotate at query time.
 3. Because rotation preserves inner products, the original distance is recovered
    from the codes plus `(lower, step, codeSum, norm²)` metadata.
 
-## Why rq8?
+## Why fastrq?
 
-rq8 deliberately targets the **fast-scan path at high accuracy**, rather than
+fastrq deliberately targets the **fast-scan path at high accuracy**, rather than
 chasing the smallest possible bit-rate:
 
 - **8 bits = high accuracy.** Eight-bit codes keep the quantization error small
@@ -74,7 +74,7 @@ reranking. Smaller bit-rates are a non-goal (see [Bit widths](#bit-widths)).
 ## Usage
 
 ```rust
-use rq8::{Bits, Metric, RotationalQuantizer};
+use fastrq::{Bits, Metric, RotationalQuantizer};
 
 let q = RotationalQuantizer::new(/* input_dim */ 768, Bits::Eight, Metric::Cosine);
 

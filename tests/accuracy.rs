@@ -5,9 +5,9 @@
 //! own RQ test suite, plus an end-to-end nearest-neighbor recall check that
 //! shows compression preserves ranking.
 
+use fastrq::{Bits, FastRotation, Metric, RotationalQuantizer, RqCode};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use rq8::{Bits, FastRotation, Metric, RotationalQuantizer, RqCode};
 
 const METRICS: [Metric; 3] = [Metric::Cosine, Metric::Dot, Metric::L2];
 
@@ -132,7 +132,11 @@ fn distance_estimate_close_to_f32() {
             // Weaviate's flat bound for its symmetric distancer test is 0.0051.
             // L2 carries twice the dot-estimate error (its `-2*dot` term), so we
             // allow 2x for it.
-            let eps = if matches!(metric, Metric::L2) { 0.0102 } else { 0.0051 };
+            let eps = if matches!(metric, Metric::L2) {
+                0.0102
+            } else {
+                0.0051
+            };
             assert!(
                 (estimated - expected).abs() < eps,
                 "metric {metric:?} d={d}: estimated {estimated} vs expected {expected}"
@@ -205,7 +209,10 @@ fn code_point_distribution_is_uniformish() {
             continue;
         }
         assert!(c > 0, "byte {i} never used");
-        assert!((c as f64) < 3.0 * expectation, "byte {i} over-represented: {c}");
+        assert!(
+            (c as f64) < 3.0 * expectation,
+            "byte {i} over-represented: {c}"
+        );
     }
 }
 
@@ -232,17 +239,28 @@ fn recall_at_10_vs_exact() {
         let query = random_unit_vector(d, &mut rng);
 
         // Exact top-k by true distance.
-        let mut exact: Vec<(usize, f32)> =
-            data.iter().enumerate().map(|(i, v)| (i, true_distance(Metric::Dot, &query, v))).collect();
+        let mut exact: Vec<(usize, f32)> = data
+            .iter()
+            .enumerate()
+            .map(|(i, v)| (i, true_distance(Metric::Dot, &query, v)))
+            .collect();
         exact.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        let exact_top: std::collections::HashSet<usize> = exact.iter().take(k).map(|(i, _)| *i).collect();
+        let exact_top: std::collections::HashSet<usize> =
+            exact.iter().take(k).map(|(i, _)| *i).collect();
 
         // Approximate top-k by estimated distance.
         let dist = q.query_distancer(&query);
-        let mut approx: Vec<(usize, f32)> =
-            codes.iter().enumerate().map(|(i, c)| (i, dist.distance(c).unwrap())).collect();
+        let mut approx: Vec<(usize, f32)> = codes
+            .iter()
+            .enumerate()
+            .map(|(i, c)| (i, dist.distance(c).unwrap()))
+            .collect();
         approx.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-        let hits = approx.iter().take(k).filter(|(i, _)| exact_top.contains(i)).count();
+        let hits = approx
+            .iter()
+            .take(k)
+            .filter(|(i, _)| exact_top.contains(i))
+            .count();
         total_recall += hits as f64 / k as f64;
     }
 
@@ -302,7 +320,7 @@ fn byte_roundtrip() {
     let q = RotationalQuantizer::with_seed(d, Bits::Eight, Metric::Cosine, 1);
     let code = q.encode(&random_unit_vector(d, &mut rng));
     let bytes = code.to_bytes();
-    assert_eq!(bytes.len(), rq8::RQ_METADATA_SIZE + q.output_dim());
+    assert_eq!(bytes.len(), fastrq::RQ_METADATA_SIZE + q.output_dim());
     let restored = RqCode::from_bytes(&bytes).unwrap();
     assert_eq!(code, restored);
 }
@@ -327,5 +345,8 @@ fn serde_bincode_roundtrip() {
 
     // And the reloaded quantizer estimates identical distances.
     let other = q.encode(&random_unit_vector(d, &mut rng));
-    assert_eq!(q.distance(&code, &other).unwrap(), q2.distance(&c2, &other).unwrap());
+    assert_eq!(
+        q.distance(&code, &other).unwrap(),
+        q2.distance(&c2, &other).unwrap()
+    );
 }

@@ -1,4 +1,4 @@
-//! # rq8 — 8-bit rotational quantization
+//! # fastrq — 8-bit rotational quantization
 //!
 //! A small, dependency-light implementation of **rotational quantization (RQ)**
 //! for compressing high-dimensional float vectors to ~1 byte per dimension while
@@ -26,7 +26,7 @@
 //! ## Quick start
 //!
 //! ```
-//! use rq8::{Bits, Metric, RotationalQuantizer};
+//! use fastrq::{Bits, Metric, RotationalQuantizer};
 //!
 //! let q = RotationalQuantizer::new(8, Bits::Eight, Metric::Dot);
 //! let a = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
@@ -62,7 +62,5 @@ mod quantizer;
 mod rotation;
 
 pub use error::{Error, Result};
-pub use quantizer::{
-    Bits, Metric, QueryDistancer, RQ_METADATA_SIZE, RotationalQuantizer, RqCode,
-};
+pub use quantizer::{Bits, Metric, QueryDistancer, RQ_METADATA_SIZE, RotationalQuantizer, RqCode};
 pub use rotation::{DEFAULT_FAST_ROTATION_SEED, FastRotation, Swap};

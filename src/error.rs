@@ -25,10 +25,16 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::DimensionMismatch { expected, actual } => {
-                write!(f, "code dimensions don't match: expected {expected}, got {actual}")
+                write!(
+                    f,
+                    "code dimensions don't match: expected {expected}, got {actual}"
+                )
             }
             Error::UnsupportedBits(bits) => {
-                write!(f, "unsupported bit width: {bits} (only 8-bit is implemented)")
+                write!(
+                    f,
+                    "unsupported bit width: {bits} (only 8-bit is implemented)"
+                )
             }
         }
     }

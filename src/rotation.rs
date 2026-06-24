@@ -107,7 +107,11 @@ fn random_swaps(n: usize, rng: &mut SplitMix64) -> Vec<Swap> {
     let mut swaps: Vec<Swap> = (0..n / 2)
         .map(|s| {
             let (a, b) = (p[2 * s], p[2 * s + 1]);
-            if a < b { Swap { i: a, j: b } } else { Swap { i: b, j: a } }
+            if a < b {
+                Swap { i: a, j: b }
+            } else {
+                Swap { i: b, j: a }
+            }
         })
         .collect();
     swaps.sort_by_key(|s| s.i);
@@ -127,12 +131,27 @@ impl FastRotation {
             swaps.push(random_swaps(output_dim, &mut rng));
             signs.push(random_signs(output_dim, &mut rng));
         }
-        Self { output_dim, rounds, swaps, signs }
+        Self {
+            output_dim,
+            rounds,
+            swaps,
+            signs,
+        }
     }
 
     /// Reconstruct a rotation from previously serialized pieces.
-    pub fn restore(output_dim: usize, rounds: usize, swaps: Vec<Vec<Swap>>, signs: Vec<Vec<f32>>) -> Self {
-        Self { output_dim, rounds, swaps, signs }
+    pub fn restore(
+        output_dim: usize,
+        rounds: usize,
+        swaps: Vec<Vec<Swap>>,
+        signs: Vec<Vec<f32>>,
+    ) -> Self {
+        Self {
+            output_dim,
+            rounds,
+            swaps,
+            signs,
+        }
     }
 
     /// Output (rotated) dimension. Always a multiple of 64.

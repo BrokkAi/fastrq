@@ -87,7 +87,13 @@ impl RqCode {
     /// The code representing the zero vector (also returned for degenerate
     /// input such as an empty or all-zero vector).
     pub fn zero(dim: usize) -> Self {
-        Self { lower: 0.0, step: 0.0, code_sum: 0.0, norm2: 0.0, codes: vec![0u8; dim] }
+        Self {
+            lower: 0.0,
+            step: 0.0,
+            code_sum: 0.0,
+            norm2: 0.0,
+            codes: vec![0u8; dim],
+        }
     }
 
     /// Rotated dimension of this code.
@@ -130,7 +136,10 @@ impl RqCode {
     /// Inverse of [`to_bytes`](Self::to_bytes).
     pub fn from_bytes(b: &[u8]) -> Result<Self> {
         if b.len() < RQ_METADATA_SIZE {
-            return Err(Error::DimensionMismatch { expected: RQ_METADATA_SIZE, actual: b.len() });
+            return Err(Error::DimensionMismatch {
+                expected: RQ_METADATA_SIZE,
+                actual: b.len(),
+            });
         }
         let f = |o: usize| f32::from_be_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]]);
         Ok(Self {
@@ -170,12 +179,27 @@ impl RotationalQuantizer {
     /// reproducing a specific rotation).
     pub fn with_seed(input_dim: usize, bits: Bits, metric: Metric, seed: u64) -> Self {
         let rotation = FastRotation::new(input_dim, Self::ROTATION_ROUNDS, seed);
-        Self { input_dim, bits, metric, rotation }
+        Self {
+            input_dim,
+            bits,
+            metric,
+            rotation,
+        }
     }
 
     /// Reconstruct from a previously stored rotation (RNG-independent).
-    pub fn from_rotation(input_dim: usize, bits: Bits, metric: Metric, rotation: FastRotation) -> Self {
-        Self { input_dim, bits, metric, rotation }
+    pub fn from_rotation(
+        input_dim: usize,
+        bits: Bits,
+        metric: Metric,
+        rotation: FastRotation,
+    ) -> Self {
+        Self {
+            input_dim,
+            bits,
+            metric,
+            rotation,
+        }
     }
 
     /// The declared input dimension.
@@ -246,7 +270,10 @@ impl RotationalQuantizer {
     /// Reconstruct the *rotated* vector from a code (the lossy inverse of
     /// quantization, before un-rotation).
     pub fn restore_rotated(&self, code: &RqCode) -> Vec<f32> {
-        code.codes.iter().map(|&c| code.lower + code.step * c as f32).collect()
+        code.codes
+            .iter()
+            .map(|&c| code.lower + code.step * c as f32)
+            .collect()
     }
 
     /// Decode a code back to an approximation of the original (un-rotated)
@@ -275,7 +302,10 @@ impl RotationalQuantizer {
     /// Returns [`Error::DimensionMismatch`] if the codes have different lengths.
     pub fn distance(&self, x: &RqCode, y: &RqCode) -> Result<f32> {
         if x.codes.len() != y.codes.len() {
-            return Err(Error::DimensionMismatch { expected: x.codes.len(), actual: y.codes.len() });
+            return Err(Error::DimensionMismatch {
+                expected: x.codes.len(),
+                actual: y.codes.len(),
+            });
         }
         let (cos, l2) = self.metric.indicators();
         let dot = self.dot_estimate(x, y);
@@ -285,7 +315,10 @@ impl RotationalQuantizer {
     /// Build a reusable distancer for a query vector. Encoding the query once
     /// and scoring many candidate codes is the common search-loop pattern.
     pub fn query_distancer(&self, query: &[f32]) -> QueryDistancer<'_> {
-        QueryDistancer { quantizer: self, query_code: self.encode(query) }
+        QueryDistancer {
+            quantizer: self,
+            query_code: self.encode(query),
+        }
     }
 }
 

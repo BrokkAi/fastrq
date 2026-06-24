@@ -1,10 +1,10 @@
 [package]
-name = "rq8"
+name = "fastrq"
 version = "0.1.0"
 edition = "2024"
 description = "8-bit rotational quantization (RaBitQ-style) for vector compression, following Weaviate's implementation."
 license = "Apache-2.0"
-repository = "https://github.com/jbellis/rq8"
+repository = "https://github.com/BrokkAi/fastrq"
 keywords = ["quantization", "vector-search", "rabitq", "compression", "ann"]
 categories = ["algorithms", "science"]
 readme = "README.md"
