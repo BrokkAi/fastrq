@@ -26,9 +26,9 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Swap {
     /// Lower index (we always store `i < j`).
-    pub i: u16,
+    pub i: u32,
     /// Higher index.
-    pub j: u16,
+    pub j: u32,
 }
 
 /// A realized random rotation. Cheap to clone; holds one set of swaps and signs
@@ -98,8 +98,9 @@ fn random_signs(dim: usize, rng: &mut SplitMix64) -> Vec<f32> {
 /// A random pairing of all `n` indices into `n/2` swaps, each used exactly once,
 /// sorted by the lower index for a more sequential access pattern.
 fn random_swaps(n: usize, rng: &mut SplitMix64) -> Vec<Swap> {
-    // Fisher-Yates shuffle of [0, n).
-    let mut p: Vec<u16> = (0..n as u16).collect();
+    // Fisher-Yates shuffle of [0, n). `n` is a multiple of 64; u32 indices
+    // support output dimensions up to ~4 billion.
+    let mut p: Vec<u32> = (0..n as u32).collect();
     for i in (1..n).rev() {
         let j = rng.next_below(i + 1);
         p.swap(i, j);

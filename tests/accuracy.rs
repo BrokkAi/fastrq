@@ -314,6 +314,58 @@ fn handles_abnormal_vectors() {
 }
 
 #[test]
+fn distance_rejects_codes_of_wrong_dimension() {
+    let q = RotationalQuantizer::with_seed(64, Bits::Eight, Metric::Dot, 1);
+    assert_eq!(q.output_dim(), 64);
+
+    // Two codes that match each other but not the quantizer (e.g. produced by a
+    // different quantizer) must be rejected, not silently mis-scored.
+    let wrong = RqCode::zero(128);
+    assert!(matches!(
+        q.distance(&wrong, &wrong),
+        Err(fastrq::Error::DimensionMismatch {
+            expected: 64,
+            actual: 128
+        })
+    ));
+
+    // Codes of differing lengths are still rejected.
+    let right = RqCode::zero(64);
+    assert!(matches!(
+        q.distance(&right, &wrong),
+        Err(fastrq::Error::DimensionMismatch { .. })
+    ));
+
+    // Correctly-sized codes score fine.
+    assert!(q.distance(&right, &right).is_ok());
+}
+
+#[test]
+fn handles_dimensions_above_u16() {
+    // output_dim pads to 65536, which overflows a u16 swap index. Must not panic
+    // and must still round-trip the rotation.
+    let d = 65_500usize;
+    let q = RotationalQuantizer::with_seed(d, Bits::Eight, Metric::Cosine, 1);
+    assert_eq!(q.output_dim(), 65_536);
+
+    let mut rng = StdRng::seed_from_u64(1);
+    let x = random_unit_vector(d, &mut rng);
+    let code = q.encode(&x);
+    assert_eq!(code.dimension(), 65_536);
+
+    // Decode (un-rotate) recovers the original within quantization error.
+    let decoded = q.decode(&code);
+    for i in 0..d {
+        assert!(
+            (decoded[i] - x[i]).abs() < 1e-2,
+            "idx {i}: {} vs {}",
+            decoded[i],
+            x[i]
+        );
+    }
+}
+
+#[test]
 fn byte_roundtrip() {
     let mut rng = StdRng::seed_from_u64(321);
     let d = 384;

@@ -289,6 +289,11 @@ impl RotationalQuantizer {
 
     /// Estimate `⟨x, y⟩` from two codes. Rotation preserves inner products, so
     /// this estimates the original dot product.
+    ///
+    /// This is the unchecked fast path: it assumes both codes came from this
+    /// quantizer (length `output_dim()`). [`dot_bytes`] zips the code slices, so
+    /// mismatched lengths silently truncate rather than error. Use
+    /// [`distance`](Self::distance) when the inputs are untrusted.
     #[inline]
     pub fn dot_estimate(&self, x: &RqCode, y: &RqCode) -> f32 {
         let d = self.output_dim() as f32;
@@ -301,13 +306,18 @@ impl RotationalQuantizer {
 
     /// Estimate the configured distance between two codes.
     ///
-    /// Returns [`Error::DimensionMismatch`] if the codes have different lengths.
+    /// Returns [`Error::DimensionMismatch`] if either code's length differs from
+    /// this quantizer's [`output_dim`](Self::output_dim) — which also catches
+    /// two equally-but-wrongly-sized codes from a different quantizer.
     pub fn distance(&self, x: &RqCode, y: &RqCode) -> Result<f32> {
-        if x.codes.len() != y.codes.len() {
-            return Err(Error::DimensionMismatch {
-                expected: x.codes.len(),
-                actual: y.codes.len(),
-            });
+        let expected = self.output_dim();
+        for code in [x, y] {
+            if code.codes.len() != expected {
+                return Err(Error::DimensionMismatch {
+                    expected,
+                    actual: code.codes.len(),
+                });
+            }
         }
         let (cos, l2) = self.metric.indicators();
         let dot = self.dot_estimate(x, y);
