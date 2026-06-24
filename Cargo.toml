@@ -8,6 +8,8 @@ repository = "https://github.com/jbellis/rq8"
 keywords = ["quantization", "vector-search", "rabitq", "compression", "ann"]
 categories = ["algorithms", "science"]
 readme = "README.md"
+# edition 2024 requires Rust 1.85+.
+rust-version = "1.85"
 
 [features]
 default = []

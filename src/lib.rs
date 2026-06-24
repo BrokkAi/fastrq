@@ -55,6 +55,8 @@
 //! reserved: it currently encodes correctly but stores one byte per dimension
 //! (no packing), so it saves no space yet. Smaller bit-rates are a non-goal.
 
+#![forbid(unsafe_code)]
+
 mod error;
 mod quantizer;
 mod rotation;
