@@ -6,6 +6,44 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-02
+
+Flat rq8 bytes written by 0.1.x parse and score identically — the on-disk
+format is unchanged and now pinned by a golden test against the published
+0.1.1 output. The *API* around it has breaking changes (below).
+
+### Added
+- **4-bit codes**: `Bits::Four` now packs two dimensions per byte in a
+  split-nibble layout (byte `i` = dim `i` low nibble, dim `i + dim/2` high
+  nibble, following Lucene's int4), halving code size vs 8-bit. Symmetric
+  4×4 and mixed 8×4 integer dot kernels.
+- **Asymmetric queries**: `query_distancer` always encodes the query at
+  8 bits. With a 4-bit index this scores fine-query × coarse-data (à la
+  Lucene BBQ / Weaviate's 1-bit RQ); measured dot MAE improves ~1/√2 vs
+  symmetric 4×4. rq4 recall@10 ≈ 0.85 on random 256-d unit vectors
+  (rq8: ≈ 0.99).
+- `RotationalQuantizer::encode_to_bytes`: encode straight into the flat
+  layout with one allocation (the write path).
+- `RotationalQuantizer::code_from_bytes` / `decode_bytes`: parse flat codes
+  with the quantizer's bit width and a dimension check (the read path).
+- `RotationalQuantizer::code_size`: flat-code byte size (scan stride).
+- `QueryDistancer::distances_bytes`: score an in-memory list of flat codes.
+- `Bits::extension()`: canonical file extensions (`"rq8"` / `"rq4"`) — the
+  flat layout is headerless, so the bit width travels out-of-band.
+- `Bits::code_bytes(dim)`, `RqCode::bits()`, `RqCodeRef::bits()`.
+- Golden-bytes test pinning the flat encoding for the default seed.
+
+### Changed (breaking)
+- `QueryDistancer` no longer borrows the quantizer (no lifetime parameter);
+  it owns the encoded query and can outlive the quantizer / cross threads
+  without `Box::leak` workarounds.
+- `RqCode::zero(dim)` → `RqCode::zero(dim, bits)`.
+- `RqCode::from_bytes(b)` / `RqCodeRef::from_bytes(b)` now take the bit
+  width: `from_bytes(b, bits)` (the flat layout cannot self-describe it).
+  Prefer `RotationalQuantizer::code_from_bytes`, which also validates.
+- `RqCode`'s serde representation gained a `bits` field (bincode streams
+  from 0.1.x do not deserialize; the flat `to_bytes` layout is unaffected).
+
 ## [0.1.1] - 2026-06-24
 
 ### Added
@@ -38,6 +76,7 @@ Initial release.
   rotation round-trip and norm preservation, code-point distribution, and
   serde/bincode round-tripping.
 
-[Unreleased]: https://github.com/BrokkAi/fastrq/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/BrokkAi/fastrq/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/BrokkAi/fastrq/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/BrokkAi/fastrq/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/BrokkAi/fastrq/releases/tag/v0.1.0

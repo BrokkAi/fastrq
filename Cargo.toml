@@ -1,8 +1,8 @@
 [package]
 name = "fastrq"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
-description = "8-bit rotational quantization (RaBitQ-style) for vector compression, following Weaviate's implementation."
+description = "8-bit and 4-bit rotational quantization (RaBitQ-style) for vector compression, following Weaviate's implementation."
 license = "Apache-2.0"
 repository = "https://github.com/BrokkAi/fastrq"
 keywords = ["quantization", "vector-search", "rabitq", "compression", "ann"]

@@ -31,10 +31,7 @@ impl fmt::Display for Error {
                 )
             }
             Error::UnsupportedBits(bits) => {
-                write!(
-                    f,
-                    "unsupported bit width: {bits} (only 8-bit is implemented)"
-                )
+                write!(f, "unsupported bit width: {bits} (supported: 4, 8)")
             }
         }
     }
