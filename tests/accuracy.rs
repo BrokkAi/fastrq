@@ -429,7 +429,10 @@ fn encode_to_bytes_matches_encode() {
         assert_eq!(q.encode_to_bytes(&[]), q.encode(&[]).to_bytes());
         let zeros = vec![0.0f32; d];
         assert_eq!(q.encode_to_bytes(&zeros), q.encode(&zeros).to_bytes());
-        assert_eq!(q.encode_to_bytes(&x_short()), q.encode(&x_short()).to_bytes());
+        assert_eq!(
+            q.encode_to_bytes(&x_short()),
+            q.encode(&x_short()).to_bytes()
+        );
         assert_eq!(q.encode_to_bytes(&[]).len(), q.code_size());
     }
 }
@@ -483,7 +486,10 @@ fn distances_bytes_matches_individual() {
         }
 
         // A malformed candidate fails the whole batch.
-        assert!(dist.distances_bytes([&flats[0][..], &[0u8; 4][..]]).is_err());
+        assert!(
+            dist.distances_bytes([&flats[0][..], &[0u8; 4][..]])
+                .is_err()
+        );
     }
 }
 
@@ -516,16 +522,16 @@ fn golden_bytes_default_seed() {
     println!("rq4 golden: {got4:?}");
 
     let expected8: Vec<u8> = vec![
-        255, 255, 215, 190, 60, 9, 86, 59, 227, 150, 217, 65, 92, 143, 2, 64, 46, 88, 101, 169,
-        96, 53, 130, 190, 243, 137, 210, 131, 112, 130, 192, 61, 104, 67, 102, 105, 103, 60, 132,
-        156, 135, 80, 89, 163, 204, 142, 208, 255, 155, 160, 96, 0, 204, 88, 57, 191, 143, 160,
-        133, 141, 142, 134, 205, 165, 43, 144, 52, 107, 51, 70, 70, 192, 70, 160, 192, 148, 160,
-        123, 146, 232,
+        255, 255, 215, 190, 60, 9, 86, 59, 227, 150, 217, 65, 92, 143, 2, 64, 46, 88, 101, 169, 96,
+        53, 130, 190, 243, 137, 210, 131, 112, 130, 192, 61, 104, 67, 102, 105, 103, 60, 132, 156,
+        135, 80, 89, 163, 204, 142, 208, 255, 155, 160, 96, 0, 204, 88, 57, 191, 143, 160, 133,
+        141, 142, 134, 205, 165, 43, 144, 52, 107, 51, 70, 70, 192, 70, 160, 192, 148, 160, 123,
+        146, 232,
     ];
     let expected4: Vec<u8> = vec![
-        255, 255, 215, 190, 208, 105, 99, 61, 218, 192, 216, 65, 92, 143, 2, 64, 147, 149, 102,
-        10, 198, 83, 56, 187, 142, 152, 140, 136, 135, 136, 203, 164, 54, 132, 54, 102, 54, 68,
-        72, 185, 72, 149, 181, 154, 156, 120, 156, 239,
+        255, 255, 215, 190, 208, 105, 99, 61, 218, 192, 216, 65, 92, 143, 2, 64, 147, 149, 102, 10,
+        198, 83, 56, 187, 142, 152, 140, 136, 135, 136, 203, 164, 54, 132, 54, 102, 54, 68, 72,
+        185, 72, 149, 181, 154, 156, 120, 156, 239,
     ];
     assert_eq!(got8, expected8, "rq8 flat encoding changed — format break!");
     assert_eq!(got4, expected4, "rq4 flat encoding changed — format break!");
@@ -615,7 +621,11 @@ fn rq4_distance_estimate_close_to_f32() {
             // Empirical bounds at ~2.5x the observed max over this seed
             // (cos/dot 0.0164, L2 0.0443). The 4-bit step is 17x the 8-bit
             // one, but only the data side pays it — the query is 8-bit.
-            let eps = if matches!(metric, Metric::L2) { 0.10 } else { 0.04 };
+            let eps = if matches!(metric, Metric::L2) {
+                0.10
+            } else {
+                0.04
+            };
             assert!(
                 (estimated - expected).abs() < eps,
                 "metric {metric:?} d={d}: estimated {estimated} vs expected {expected}"
